@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Secure Connect Chat</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 560px; margin: 2rem auto; padding: 0 1rem; }
+  input, button { padding: .5rem; margin: .25rem 0; }
+  #token { width: 100%; box-sizing: border-box; }
+  #log { border: 1px solid #aaa; height: 260px; overflow-y: auto; padding: .5rem; margin: .5rem 0; }
+</style>
+</head>
+<body>
+  <h2>Secure Connect Chat</h2>
+  <p>Log in via <code>POST /api/auth/login</code>, then paste your token:</p>
+  <input id="token" placeholder="JWT token">
+  <div><input id="room" value="general"> <button id="join">Connect &amp; Join</button></div>
+  <div id="log"></div>
+  <input id="msg" placeholder="Type a message"> <button id="send">Send</button>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  let socket;
+  const log = document.getElementById('log');
+  const add = (t) => { const p = document.createElement('div'); p.textContent = t; log.appendChild(p); log.scrollTop = log.scrollHeight; };
+
+  document.getElementById('join').onclick = () => {
+    socket = io({ auth: { token: document.getElementById('token').value.trim() } });
+    socket.on('connect', () => { add('Connected'); socket.emit('joinRoom', document.getElementById('room').value); });
+    socket.on('connect_error', (e) => add('Error: ' + e.message));
+    socket.on('chatError', (d) => add('! ' + d.message));
+    socket.on('system', (d) => add('* ' + d.message));
+    socket.on('chatMessage', (d) => add(`[${d.room}] ${d.user}: ${d.message}`));
+  };
+  document.getElementById('send').onclick = () => {
+    const m = document.getElementById('msg');
+    if (socket && m.value) { socket.emit('chatMessage', { room: document.getElementById('room').value, message: m.value }); m.value = ''; }
+  };
+</script>
+</body>
+</html>
